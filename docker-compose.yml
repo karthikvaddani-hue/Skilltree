@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: skilltree_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - skilltree_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skilltree_api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: development
+      MONGO_URI: mongodb://mongodb:27017
+      DB_NAME: skilltree_db
+      JWT_SECRET_KEY: change-this-in-production-please
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+    networks:
+      - skilltree_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: skilltree_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://backend:5000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - skilltree_net
+
+volumes:
+  mongo_data:
+
+networks:
+  skilltree_net:
+    driver: bridge
